@@ -1,9 +1,24 @@
+import math
 from typing import Dict, List, Any
 from .code_gen import Instruction, OpCode
 
 
 class VMError(Exception):
     pass
+
+
+BUILTIN_FUNCS = {
+    "sqrt": (math.sqrt, 1),
+    "abs": (abs, 1),
+    "sin": (math.sin, 1),
+    "cos": (math.cos, 1),
+    "tan": (math.tan, 1),
+    "round": (round, 1),
+    "log": (math.log, 1),
+    "exp": (math.exp, 1),
+    "min": (min, -1),
+    "max": (max, -1),
+}
 
 
 class VirtualMachine:
@@ -29,7 +44,7 @@ class VirtualMachine:
             elif inst.op == OpCode.STORE_VAR:
                 if not self.stack:
                     raise VMError("Stack underflow during STORE_VAR")
-                val = self.stack[-1]  # keep value on stack as expression result
+                val = self.stack[-1]
                 self.env[str(inst.arg)] = val
             elif inst.op == OpCode.NEG:
                 if not self.stack:
@@ -57,6 +72,22 @@ class VirtualMachine:
             elif inst.op == OpCode.POW:
                 b = self._pop_two()
                 self.stack.append(b[0] ** b[1])
+            elif inst.op == OpCode.CALL_FUNC:
+                func_name, argc = inst.arg
+                if func_name not in BUILTIN_FUNCS:
+                    raise VMError(f"Unknown function: '{func_name}'")
+                func, expected_argc = BUILTIN_FUNCS[func_name]
+                if expected_argc > 0 and argc != expected_argc:
+                    raise VMError(f"Function '{func_name}' expects {expected_argc} argument(s), got {argc}")
+                if len(self.stack) < argc:
+                    raise VMError("Stack underflow during CALL_FUNC")
+                args = [self.stack.pop() for _ in range(argc)]
+                args.reverse()
+                try:
+                    res = float(func(*args))
+                except Exception as e:
+                    raise VMError(f"Error in function '{func_name}': {e}")
+                self.stack.append(res)
             else:
                 raise VMError(f"Unknown opcode: {inst.op}")
 

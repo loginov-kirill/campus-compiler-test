@@ -24,6 +24,10 @@ class ASTVisitor(ABC):
     def visit_assign(self, node: "Assignment") -> Any:
         pass
 
+    @abstractmethod
+    def visit_call(self, node: "Call") -> Any:
+        pass
+
 
 class Expr(ABC):
     @abstractmethod
@@ -73,3 +77,12 @@ class Assignment(Expr):
 
     def accept(self, visitor: ASTVisitor) -> Any:
         return visitor.visit_assign(self)
+
+
+@dataclass(frozen=True)
+class Call(Expr):
+    func: str
+    args: List[Expr]
+
+    def accept(self, visitor: ASTVisitor) -> Any:
+        return visitor.visit_call(self)

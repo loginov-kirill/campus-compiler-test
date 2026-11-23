@@ -1,6 +1,6 @@
 from typing import List
 from .tokens import Token, TokenType
-from .ast_nodes import Expr, NumberLiteral, BinaryOp, UnaryOp, Variable, Assignment
+from .ast_nodes import Expr, NumberLiteral, BinaryOp, UnaryOp, Variable, Assignment, Call
 
 
 class ParserError(Exception):
@@ -72,7 +72,6 @@ class Parser:
     def _parse_exponentiation(self) -> Expr:
         expr = self._parse_unary()
         if self._match(TokenType.CARET):
-            # Right-associative: 2 ^ 3 ^ 2 = 2 ^ (3 ^ 2)
             right = self._parse_exponentiation()
             expr = BinaryOp(left=expr, operator="^", right=right)
         return expr
@@ -95,6 +94,17 @@ class Parser:
 
         if tok.type == TokenType.IDENTIFIER:
             self._advance()
+            # Function call syntax: name(arg1, arg2, ...)
+            if self._match(TokenType.LPAREN):
+                args: List[Expr] = []
+                if not self._match(TokenType.RPAREN):
+                    while True:
+                        args.append(self._parse_assignment())
+                        if self._match(TokenType.COMMA):
+                            continue
+                        self._consume(TokenType.RPAREN, "Expected ')' after function arguments")
+                        break
+                return Call(func=tok.value, args=args)
             return Variable(name=tok.value)
 
         if self._match(TokenType.LPAREN):
