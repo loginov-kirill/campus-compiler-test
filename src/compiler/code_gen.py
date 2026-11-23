@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import List, Any
-from .ast_nodes import ASTVisitor, Expr, NumberLiteral, BinaryOp, UnaryOp, Variable, Assignment
+from .ast_nodes import ASTVisitor, Expr, NumberLiteral, BinaryOp, UnaryOp, Variable, Assignment, Call
 
 
 class OpCode(Enum):
@@ -15,6 +15,7 @@ class OpCode(Enum):
     MOD = auto()
     POW = auto()
     NEG = auto()
+    CALL_FUNC = auto()
     HALT = auto()
 
 
@@ -73,3 +74,8 @@ class BytecodeCompiler(ASTVisitor):
     def visit_assign(self, node: Assignment) -> None:
         node.value.accept(self)
         self.instructions.append(Instruction(OpCode.STORE_VAR, node.name))
+
+    def visit_call(self, node: Call) -> None:
+        for arg in node.args:
+            arg.accept(self)
+        self.instructions.append(Instruction(OpCode.CALL_FUNC, (node.func, len(node.args))))
